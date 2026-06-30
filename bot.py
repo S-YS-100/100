@@ -12,29 +12,29 @@ from telegram.ext import (
     CallbackQueryHandler
 )
 
-# إعداد السجلات لمراقبة أداء البوت
+# إعداد السجلات لمراقبة أداء السيرفر والأخطاء
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-# قراءة توكن البوت تلقائياً من المتغيرات البيئية في Railway
+# استدعاء توكن البوت برمجياً وصافياً من متغيرات بيئة Railway
 TOKEN = os.getenv("BOT_TOKEN")
 
-# روابط ميديا المطور المحددة
-START_GIF_URL = "https://i.postimg.cc/Mp6J1k1Q/Picsart-26-06-29-10-52-12-611-ezgif-com-video-to-gif-converter.gif"
-DEV_CARD_URL = "https://i.postimg.cc/tgrqP2sW/IMG-20260620-133210-543.jpg"
+# روابط وسائط المطور المعتمدة
+START_GIF_URL = "https://postimg.cc"
+DEV_CARD_URL = "https://postimg.cc"
 
-# نص الترحيب والتعريف الخاص بالمطور يوسف شاهين
+# نص الترحيب والتعريف الخاص بالمطور (نص مطهر وخالي من الرموز المعيقة)
 DEV_WELCOME_TEXT = (
-    "💡 *YOUSEF SHAHEEN | Coding the future, beyond the limits of imagination.*\n\n"
+    "💡 YOUSEF SHAHEEN | Coding the future, beyond the limits of imagination.\n\n"
     "أنا لا أبني مجرد بوتات تليجرام، بل أصيغ حلولاً رقمية ذكية تتنفس الابتكار. "
-    "Engineering excellence بلمسة فنية، لنحول أفكارك إلى واقع automated يسبق زمنه.\n\n"
-    "🚀 *Ready to disrupt? Let's connect:*\n"
+    "Engineering excellence بلمسة فنية، لنحول أفكارك إلى واقع أوتوماتيكي يسبق زمنه.\n\n"
+    "🚀 Ready to disrupt? Let's connect:\n"
     "📩 @Y9_S4"
 )
 
-# مراحل جلسة إضافة قناة (Conversation States)
+# مراحل جلسة الإدخال المتتالي (Conversation States)
 ADD_CHANNEL_INFO, ADD_WELCOME_MSG = range(2)
 
-# إنشاء قاعدة البيانات والجداول تلقائياً عند بدء التشغيل
+# تهيئة قاعدة البيانات والجداول بشكل تلقائي وآمن عند الإقلاع
 def init_db():
     conn = sqlite3.connect('buttons_maker.db')
     cursor = conn.cursor()
@@ -50,7 +50,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-# أمر /start لعرض الميديا والقنوات وأزرار المطور الشفافة
+# أمر /start لعرض الصورة الترحيبية المتحركة وقائمة الأزرار الشفافة وحسابات المطور
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_first_name = update.effective_user.first_name
     
@@ -60,23 +60,24 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     rows = cursor.fetchall()
     conn.close()
 
-    # بناء مصفوفة الأزرار الشفافة الأساسية
     keyboard = []
     
-    # 1. إضافة القنوات والبوتات المخزنة في قاعدة البيانات أولاً
+    # 1. توليد الأزرار الشفافة للقنوات والبوتات المضافة يدوياً
     for button_name, target_url in rows:
         keyboard.append([InlineKeyboardButton(text=button_name, url=target_url)])
 
-    # 2. إضافة زر المطور الخاص بـ يوسف شاهين أسفل اللستة
-    keyboard.append([InlineKeyboardButton(text="👑 حـسابات المـطور", callback_data="developer_info")])
+    # 2. دمج زر المطور التفاعلي في أسفل مصفوفة الأزرار
+    keyboard.append([InlineKeyboardButton(text="👑 حسابات المطور", callback_data="developer_info")])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    # إرسال الصورة المتحركة GIF مع رسالة الترحيب باسم البوت واسم المستخدم
+    # صياغة نص الكابشن الترحيبي الصافي
     caption_text = (
-        f"🤖 مرحباً بك يا {user_first_name} في بوت *⁨𝚂𝙷𝙰𝙷𝙴𝙴𝙽 | 𝚈𝚂 𖠌⁩*\n\n"
-        f"📋 إليك لستة القنوات والبوتات المتاحة حالياً للتصفح المباشر عبر الأزرار الشفافة بالأسفل:\n\n"
-        f"🛠️ لإضافة قناة أو بوت جديد إلى القائمة، أرسل الأمر: /add"
+        f"🤖 أهلاً بك يا {user_first_name} في بوت SHAHEEN | YS المطور لإنشاء الأزرار الشفافة.\n\n"
+        f"📋 إليك لستة القنوات والبوتات المتاحة حالياً للتصفح المباشر عبر الأزرار بالأسفل:\n\n"
+        f"⚙️ أوامر التحكم الإدارية:\n"
+        f"📥 لإضافة زر وقناة جديدة: /add\n"
+        f"🗑️ لحذف قناة من اللستة: /del"
     )
     
     await update.message.reply_animation(
@@ -86,29 +87,28 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
-# معالجة الضغط على زر "حسابات المطور" لعرض البطاقة والـ 6 أزرار الشفافة
+# معالجة وعرض بطاقة المطور يوسف شاهين والشبكة المتناسقة من الـ 6 أزرار الشفافة
 async def developer_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer() # الاستجابة للنقرة لمنع تعليق الزر
+    await query.answer()
     
-    # بناء شبكة الأزرار الستة (6 أزرار) لحسابات المطور يوسف شاهين كما طلبت
+    # صياغة مصفوفة الحسابات الستة بدقة تامة ومتناسقة كلياً (ترند 2030)
     dev_keyboard = [
         [
-            InlineKeyboardButton(text="📸 انستغرام", url="https://www.instagram.com/1.0_v_?igsh=N2N5MXNwN3p4ZDY2"),
+            InlineKeyboardButton(text="📸 انستغرام", url="https://instagram.com"),
             InlineKeyboardButton(text="✈️ تليجرام", url="https://t.me")
         ],
         [
-            InlineKeyboardButton(text="🎵 تيك توك", url="https://www.tiktok.com/@zix8ii?_r=1&_d=f3c01a6371bii9&sec_uid="),
-            InlineKeyboardButton(text="👤 فيسبوك", url="https://www.facebook.com/share/1BkTUUih6e/")
+            InlineKeyboardButton(text="🎵 تيك توك", url="https://tiktok.com"),
+            InlineKeyboardButton(text="👤 فيسبوك", url="https://facebook.com")
         ],
         [
-            InlineKeyboardButton(text="💬 واتساب", url="https://wa.link/lc6f5w"),
+            InlineKeyboardButton(text="💬 واتساب", url="https://wa.link"),
             InlineKeyboardButton(text="🤝 للدعم", url="https://t.me")
         ]
     ]
     dev_markup = InlineKeyboardMarkup(dev_keyboard)
     
-    # إرسال البطاقة التعريفية للمطور كصورة وتحتها النص والأزرار الستة
     await query.message.reply_photo(
         photo=DEV_CARD_URL,
         caption=DEV_WELCOME_TEXT,
@@ -116,7 +116,7 @@ async def developer_callback_handler(update: Update, context: ContextTypes.DEFAU
         parse_mode="Markdown"
     )
 
-# بدء مرحلة إضافة قناة جديدة
+# بدء محادثة إضافة قناة/بوت جديد
 async def start_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "📥 *بدء إضافة زر جديد إلى اللستة:*\n\n"
@@ -129,8 +129,9 @@ async def start_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ADD_CHANNEL_INFO
 
-# معالجة بيانات القناة والزر (معرف، ID، أو تحويل رسالة)
+# معالجة مدخلات القناة وتوليد الرابط (يدعم المعرف، الأيدي، والتحويل)
 async def process_channel_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # التحقق من الرسائل المحولة من القنوات
     if update.message.forward_from_chat and update.message.forward_from_chat.type == "channel":
         channel_id = str(update.message.forward_from_chat.id)
         if update.message.forward_from_chat.username:
@@ -139,12 +140,13 @@ async def process_channel_info(update: Update, context: ContextTypes.DEFAULT_TYP
             target_url = f"https://t.mec/{channel_id.replace('-100', '')}/1"
         
         context.user_data['forwarded_channel'] = (channel_id, target_url)
-        await update.message.reply_text("✍️ تم التعرف على القناة المحولة بنجاح!\nالآن أرسل *اسم الزر المخصص* الذي سيظهر للأعضاء:")
+        await update.message.reply_text("✍️ تم قراءة بيانات القناة المحولة بنجاح!\nالآن أرسل *اسم الزر المخصص* الذي ترغب بوضعه في القائمة:")
         return ADD_WELCOME_MSG
 
+    # المعالجة النصية القياسية المفصولة بـ |
     text_input = update.message.text
     if "|" not in text_input:
-        await update.message.reply_text("❌ صيغة خاطئة! يرجى كتابة المعرف واسم الزر وبينهما الفاصلة `|` كما في المثال.")
+        await update.message.reply_text("❌ صيغة خاطئة! يرجى إرسال المعرف واسم الزر وبينهما الفاصلة `|` كما في المثال الاسترشادي.")
         return ADD_CHANNEL_INFO
 
     parts = text_input.split("|")
@@ -159,10 +161,10 @@ async def process_channel_info(update: Update, context: ContextTypes.DEFAULT_TYP
         target_url = f"https://t.mec/{raw_id.replace('-100', '')}/1"
 
     context.user_data['normal_channel'] = (raw_id, btn_name, target_url)
-    await update.message.reply_text("📝 ممتاز! الآن أرسل *الرسالة الترحيبية المخصصة* التي ستُرسل للأعضاء عند انضمامهم:")
+    await update.message.reply_text("📝 ممتاز! الآن أرسل *الرسالة الترحيبية المخصصة* المربوطة بهذه القناة للأعضاء الجدد:")
     return ADD_WELCOME_MSG
 
-# حفظ كافة البيانات والرسالة الترحيبية في قاعدة البيانات
+# استقبال الرسالة الترحيبية وحفظ كامل البيانات في الـ SQLite
 async def save_channel_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     welcome_msg = update.message.text
 
@@ -170,9 +172,9 @@ async def save_channel_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
         channel_id, btn_name, target_url = context.user_data['normal_channel']
     elif 'forwarded_channel' in context.user_data:
         channel_id, target_url = context.user_data['forwarded_channel']
-        btn_name = "رابط القناة المحولة"
+        btn_name = "رابط القناة المحولة" 
     else:
-        await update.message.reply_text("⚠️ حدث خطأ في الجلسة، يرجى البدء من جديد عبر الأمر /add")
+        await update.message.reply_text("⚠️ حدث تضارب في الجلسة، يرجى البدء من جديد عبر: /add")
         return ConversationHandler.END
 
     conn = sqlite3.connect('buttons_maker.db')
@@ -185,16 +187,35 @@ async def save_channel_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
 
     context.user_data.clear()
-    await update.message.reply_text("✅ تم إنشاء الزر الشفاف وتعيين الرسالة الترحيبية بنجاح!\nأرسل /start لمعاينة اللستة الحالية.")
+    await update.message.reply_text("✅ تم توليد الزر الشفاف وتأكيد الرسالة الترحيبية بنجاح!\nأرسل /start لمعاينة اللستة المحدثة.")
     return ConversationHandler.END
 
-# إلغاء عملية الإضافة الحالية
+# ميزة حذف قناة/زر من اللستة وقاعدة البيانات
+async def delete_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("🗑️ *طريقة الحذف الأوتوماتيكي:*\nأرسل الأمر متبوعاً بمعرف القناة أو الأيدي المضاف.\n\n💡 *مثال:* `/del @MyChannel`", parse_mode="Markdown")
+        return
+
+    target_id = context.args[0].strip()
+    conn = sqlite3.connect('buttons_maker.db')
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM target_channels WHERE channel_id = ?', (target_id,))
+    changes = conn.total_changes
+    conn.commit()
+    conn.close()
+
+    if changes > 0:
+        await update.message.reply_text(f"✅ تم إقصاء وحذف القناة `{target_id}` وإزالة زرها الشفاف بنجاح.", parse_mode="Markdown")
+    else:
+        await update.message.reply_text("❌ لم يتم العثور على هذا المعرف في قاعدة بيانات اللستة الحالية.")
+
+# إلغاء عملية المحادثة النشطة للإضافة
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
-    await update.message.reply_text("📥 تم إلغاء عملية الإضافة بنجاح.")
+    await update.message.reply_text("📥 تم إلغاء جلسة التطوير والإضافة بنجاح.")
     return ConversationHandler.END
 
-# استقبال الأعضاء الجدد في القنوات وإرسال الترحيب المخصص
+# فحص انضمام الأعضاء الجدد للقنوات وبث الرسالة الترحيبية المخصصة للقناة تلقائياً
 async def welcome_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.chat_member and update.chat_member.new_chat_member.status == "member":
         chat_id = str(update.chat_member.chat.id)
@@ -218,26 +239,6 @@ def main():
     init_db()
     
     if not TOKEN:
-        raise ValueError("❌ خطأ: المتغير البيئي BOT_TOKEN غير موجود في إعدادات السيرفر!")
-        
-    application = Application.builder().token(TOKEN).build()
+        raise ValueError("❌ خطأ بيئي كلي: المتغير BOT_TOKEN غير معرّف في لوحة تحكم سيرفر رايلوي!")
 
-    add_conversation = ConversationHandler(
-        entry_points=[CommandHandler("add", start_add)],
-        states={
-            ADD_CHANNEL_INFO: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_channel_info)],
-            ADD_WELCOME_MSG: [MessageHandler(filters.TEXT & ~filters.COMMAND, save_channel_data)],
-        },
-        fallbacks=[CommandHandler("cancel", cancel)],
-    )
-
-    # تسجيل الأوامر وضغطات الأزرار الشفافة
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(developer_callback_handler, pattern="developer_info"))
-    application.add_handler(add_conversation)
-    application.add_handler(MessageHandler(filters.ChatType.CHANNEL, welcome_handler))
-
-    # تشغيل البوت بنظام Polling لعام 2026 المستقر تماماً بدون Webhook
-    print("🚀 البوت يعمل الآن بنظام Polling ومستعد لاستقبال الأوامر...")
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
-
+    
