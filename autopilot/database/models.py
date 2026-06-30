@@ -1,6 +1,6 @@
 """SQLAlchemy models for autopilot.
 
-Models include: User, Chat, Channel, Conversation, Settings, Statistics
+Models include: User, Chat, Channel, Conversation, Setting, Statistics
 Each model includes created_at / updated_at timestamps, indexes, and relations.
 """
 from __future__ import annotations
@@ -62,6 +62,19 @@ class Conversation(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", back_populates="conversations", lazy="joined")
+    messages = relationship("ConversationMessage", back_populates="conversation", lazy="selectin", cascade="all, delete-orphan")
+
+
+class ConversationMessage(Base):
+    __tablename__ = "conversation_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    conversation_id: Mapped[int] = mapped_column(Integer, ForeignKey("conversations.id"), nullable=False, index=True)
+    role: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    conversation = relationship("Conversation", back_populates="messages", lazy="joined")
 
 
 class Setting(Base):

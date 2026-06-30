@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import List
 
-from ..database.repositoires import HistoryRepository  # type: ignore
+from ..database.repositories import HistoryRepository
 
 
 class HistoryService:

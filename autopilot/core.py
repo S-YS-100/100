@@ -13,6 +13,7 @@ import inspect
 import logging
 import os
 import pkgutil
+import signal
 import sys
 import time
 from types import ModuleType
@@ -25,6 +26,7 @@ from .services.http import HttpClient
 from .services.cache import CacheService
 from .services.ai.manager import AIManager
 from .services.telegram.client import TelegramService
+from .handlers.loader import load_handlers
 from .callbacks import callback_router
 from .router import router
 
@@ -84,30 +86,13 @@ class Application:
         await self.telegram.initialize()
         logging.getLogger(__name__).debug("Telegram service initialized")
 
-    def _discover_handlers(self) -> None:
-        pkg = "autopilot.handlers"
-        package = importlib.import_module(pkg)
-        package_path = package.__path__
-        for finder, name, ispkg in pkgutil.iter_modules(package_path):
-            full_name = f"{pkg}.{name}"
-            try:
-                module = importlib.import_module(full_name)
-            except Exception:
-                logger.exception("Failed importing handler module %s", full_name)
-                continue
-            # register function optional
-            if hasattr(module, "register") and callable(getattr(module, "register")):
-                try:
-                    # register may be sync or async
-                    func = getattr(module, "register")
-                    if inspect.iscoroutinefunction(func):
-                        self.loop.create_task(func())
-                    else:
-                        func()
-                    self.handler_modules.append(module)
-                    logger.debug("Registered handler module %s", full_name)
-                except Exception:
-                    logger.exception("Error registering handler %s", full_name)
+    async def _discover_handlers(self) -> None:
+        try:
+            loaded = await load_handlers()
+            self.handler_modules = [importlib.import_module(m) for m in loaded]
+            logger.info("Loaded %d handler modules", len(loaded))
+        except Exception:
+            logger.exception("Error discovering handlers")
 
     async def _validate_startup(self) -> None:
         # Environment already validated by config; verify DB, HTTP, Telegram auth
@@ -124,7 +109,14 @@ class Application:
         await self._init_ai()
         await self._init_telegram()
         # discover and register handlers
-        self._discover_handlers()
+        await self._discover_handlers()
+        # register signals
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            try:
+                self.loop.add_signal_handler(sig, lambda s=sig: asyncio.create_task(self.stop()))
+            except NotImplementedError:
+                # signals not supported on Windows event loop
+                pass
         # validate critical systems
         await self._validate_startup()
         logger.info("autopilot started in %.2fs", time.time() - start)
@@ -133,6 +125,8 @@ class Application:
 
     async def stop(self) -> None:
         logger.info("Shutdown requested — closing services")
+        # set stop event so start() can return
+        self.stop_event.set()
         # Stop telegram
         if self.telegram is not None:
             await self.telegram.shutdown()

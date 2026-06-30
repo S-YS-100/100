@@ -8,12 +8,13 @@ from __future__ import annotations
 import importlib
 import pkgutil
 import logging
+import inspect
 from typing import List
 
 logger = logging.getLogger("autopilot.handlers.loader")
 
 
-def load_handlers() -> List[str]:
+async def load_handlers() -> List[str]:
     pkg = "autopilot.handlers"
     package = importlib.import_module(pkg)
     package_path = package.__path__
@@ -28,7 +29,10 @@ def load_handlers() -> List[str]:
         if hasattr(module, "register"):
             try:
                 func = getattr(module, "register")
-                func()
+                if inspect.iscoroutinefunction(func):
+                    await func()
+                else:
+                    func()
                 loaded.append(full_name)
                 logger.debug("Loaded handler %s", full_name)
             except Exception:
