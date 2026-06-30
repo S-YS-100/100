@@ -1,39 +1,60 @@
-"""Structured logging configuration for autopilot.
+"""Advanced logging configuration with rotating files and colored console.
 
-This module configures python's standard logging as well as structlog when
-available. The goal is to produce structured events containing timestamp,
-level, and message. Handlers and formatters are intentionally lightweight so
-they function in environments without third-party logging backends.
+Uses colorama for console colors and a TimedRotatingFileHandler for persisted
+logs under logs/ directory. File rotation keeps the last 14 days by default.
 """
 from __future__ import annotations
 
 import logging
+import logging.handlers
+import os
 import sys
-from typing import Any
+from typing import Optional
+
+from colorama import Fore, Style, init as colorama_init
 
 from .config import Settings, get_settings
 
 
-def configure_logging(settings: Settings | None = None) -> None:
-    settings = settings or get_settings()
-    level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
+class ColoredFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:  # type: ignore
+        level = record.levelno
+        if level >= logging.ERROR:
+            color = Fore.RED
+        elif level >= logging.WARNING:
+            color = Fore.YELLOW
+        elif level >= logging.INFO:
+            color = Fore.GREEN
+        else:
+            color = Fore.CYAN
+        msg = super().format(record)
+        return f"{color}{msg}{Style.RESET_ALL}"
 
-    # Basic configuration — console in a readable format.
+
+def configure_logging(settings: Optional[Settings] = None) -> None:
+    settings = settings or get_settings()
+    colorama_init()
+
+    level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
     root = logging.getLogger()
     root.setLevel(level)
 
-    handler = logging.StreamHandler(stream=sys.stdout)
-    formatter = logging.Formatter(
-        "%(asctime)s %(levelname)s [%(name)s] %(message)s",
-        datefmt="%Y-%m-%dT%H:%M:%S%z",
-    )
-    handler.setFormatter(formatter)
+    # Console handler with colors
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(level)
+    ch.setFormatter(ColoredFormatter("%(asctime)s %(levelname)s [%(name)s] %(message)s", datefmt="%Y-%m-%dT%H:%M:%S"))
 
-    # Remove other handlers to avoid double logging in some environments.
+    # File handler with rotation
+    os.makedirs("logs", exist_ok=True)
+    fh = logging.handlers.TimedRotatingFileHandler("logs/autopilot.log", when="midnight", backupCount=14, encoding="utf-8")
+    fh.setLevel(level)
+    fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s [%(name)s] %(message)s", datefmt="%Y-%m-%dT%H:%M:%S"))
+
+    # Clean handlers
     for h in list(root.handlers):
         root.removeHandler(h)
 
-    root.addHandler(handler)
+    root.addHandler(ch)
+    root.addHandler(fh)
 
-    # Extra: configure uvloop or other integrations here if desired.
-    logging.getLogger(__name__).debug("Logging configured", extra={"level": settings.LOG_LEVEL})
+    logging.getLogger(__name__).debug("Logging configured with level %s", settings.LOG_LEVEL)

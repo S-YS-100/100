@@ -1,4 +1,5 @@
-# Requirements for autopilot
+"""Updated requirements with necessary async libraries for production.
+"""
 
 python>=3.12
 
@@ -7,9 +8,11 @@ pydantic
 SQLAlchemy[asyncio]
 asyncpg
 aiohttp
-structlog
+pyrogram
+colorama
 python-dotenv
 
 # Optional / dev
 alembic
 pytest
+aioredis

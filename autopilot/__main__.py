@@ -1,10 +1,7 @@
-"""Entry point for the autopilot package.
+"""Entry point for autopilot. Initializes and runs the Application object."""
+from __future__ import annotations
 
-Runs the asynchronous application.
-"""
-import asyncio
-
-from .app import main
+from .core import run_from_cli
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    run_from_cli()
